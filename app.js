@@ -1,319 +1,128 @@
-#!/usr/bin/env node
 
-var fs       = require('fs');
-var Path     = require('path');
-var mkpath   = require('yow/fs').mkpath;
-var random   = require('yow/random');
-var sprintf  = require('yow/sprintf');
-var isObject = require('yow/is').isObject;
-var isString = require('yow/is').isString;
-var logs     = require('yow/logs');
-var Queue    = require('yow/queue');
-var Matrix   = require('pixel-matrix');
+var args    = require('minimist')(process.argv.slice(2));
+var extend  = require('yow').extend;
+var sprintf = require('yow').sprintf;
+var fs      = require('fs');
+var Matrix  = require('pixel-matrix');
 
 
+var App = function() {
 
+	var width  = 32;
+	var height = 32;
 
-var App = function(argv) {
+	if (args.size != undefined) {
+		var sizes = args.size.split('x');
 
-	var _this    = this;
-	var _queue   = new Queue(50);
-	var _matrix  = undefined;
-	var _io      = undefined;
-	var _server  = undefined;
-	var _promise = undefined;
-	var _noEmit  = false;
-
-	var argv = parseArgs();
-
-	function parseArgs() {
-
-		var args = require('yargs');
-
-		args.usage('Usage: $0 [options]');
-		args.help('h').alias('h', 'help');
-
-		args.option('l', {alias:'log',         describe:'Redirect logs to file'});
-		args.option('H', {alias:'height',      describe:'Height of RGB matrix', default:32});
-		args.option('W', {alias:'width',       describe:'Width of RGB matrix', default:32});
-		args.option('p', {alias:'port',        describe:'Listen to specified port', default:3003});
-		args.option('n', {alias:'dry-run',     describe:'Do not access hardware, just print'});
-
-		args.wrap(null);
-
-		args.check(function(argv) {
-			return true;
-		});
-
-		return args.argv;
+		if (sizes.length == 2) {
+			args.width  = sizes[0];
+			args.height = sizes[1];
+		}
 	}
 
+	if (args.width != undefined)
+		width = parseInt(args.width);
 
-	function runText(options) {
+	if (args.height != undefined)
+		height = parseInt(args.height);
 
+	var matrix  = new Matrix({width:width, height:height});
 
-		return new Promise(function(resolve, reject) {
+	this.run = function() {
 
-			options = options || {};
-
-			if (options.fontName)
-				options.fontName = sprintf('%s/fonts/%s.ttf', __dirname, options.fontName);
-
-			console.log('runText:', JSON.stringify(options));
-			_matrix.runText(options.text, options, resolve);
-		});
-
-	}
-
-	function runEmoji(options) {
-
-		return new Promise(function(resolve, reject) {
-
-			options = options || {};
-
-			if (!options.id || options.id < 1 || options.id > 846)
-				options.id = 704;
-
-			options.image = sprintf('%s/images/emojis/%d.png', __dirname, options.id);
-
-			console.log('runImage:', JSON.stringify(options));
-			_matrix.runImage(options.image, options, resolve);
-		});
-
-	}
-
-	function runAnimation(options) {
-
-		return new Promise(function(resolve, reject) {
-
-			options = options || {};
-
-			options.fileName = options.name;
-
-			// Generate a random one if not specified
-			if (options.fileName == undefined) {
-				var files = fs.readdirSync(sprintf('%s/animations', __dirname));
-				options.fileName = random(files);
-			}
-			else {
-				options.fileName = sprintf('%s.gif', options.fileName);
-			}
-
-			// Add path
-			options.fileName = sprintf('%s/animations/%s', __dirname, options.fileName);
-
-			console.log('runImage:', JSON.stringify(options));
-			_matrix.runAnimation(options.fileName, options, resolve);
-		});
-
-	}
-
-	function runRain(options) {
-
-		return new Promise(function(resolve, reject) {
-
-			options = options || {};
-
-			console.log('runRain:', JSON.stringify(options));
-			_matrix.runRain(options, resolve);
-		});
-
-	}
-
-	function runPerlin(options) {
-
-		return new Promise(function(resolve, reject) {
-
-			options = options || {};
-
-			console.log('runPerlin:', JSON.stringify(options));
-			_matrix.runPerlin(options, resolve);
-		});
-
-	}
-
-	function enqueue(promise, options) {
-
-		if (options == undefined)
-			options = {};
-
-		if (options.priority == 'low' && _matrix.isRunning())
-			return;
-
-		function enqueue() {
-			if (options.priority == '!') {
-				_queue.queue([promise]);
-				_matrix.stop();
-			}
-			else if (options.priority == 'high') {
-				_queue.prequeue(promise);
-			}
-			else {
-				_queue.enqueue(promise);
-			}
+		function callback() {
+			console.log('Done.');
 		}
 
-		function dequeue() {
-			_queue.dequeue().then(function() {
-				_io.emit('idle');
+		if (args.fill) {
+			var display = matrix.display;
 
-			})
-			.catch(function(error) {
-				console.log(error.stack);
-				_io.emit('idle');
-			});
+			for (var x = 0; x < matrix.width; x++)
+				for (var y = 0; y < matrix.height; y++)
+					matrix.display.drawPixel(x, y, 0, 0, 255);
 
+			matrix.display.update();
+
+			setTimeout(function(){}, 2000);
 		}
 
-		if (_queue.isEmpty()) {
-			enqueue();
-			dequeue();
+		else if (args.rain) {
+			var options = {};
+
+			extend(options, {duration   : args.duration});
+			extend(options, {delay      : args.delay});
+			extend(options, {speed      : args.speed});
+
+			if (args.hue) {
+				extend(options, {hue : parseInt(args.hue)});
+
+			}
+
+
+			matrix.runRain(options, callback);
+		}
+
+		else if (args.perlin) {
+			var options = {};
+
+			extend(options, {duration   : args.duration});
+			extend(options, {delay      : args.delay});
+			extend(options, {speed      : args.speed});
+
+			extend(options, {mode       : args.mode});
+
+			matrix.runPerlin(options, callback);
+		}
+
+		else if (args.image) {
+			var options = {};
+
+			extend(options, {duration   : args.duration});
+			extend(options, {delay      : args.delay});
+			extend(options, {speed      : args.speed});
+
+			extend(options, {scroll     : args.scroll});
+			extend(options, {pause      : args.pause});
+			extend(options, {iterations : args.iterations});
+
+			matrix.runImage(args.image, options, callback);
+
+		}
+		else if (args.animation) {
+			var options = {};
+
+			extend(options, {duration   : args.duration});
+			extend(options, {delay      : args.delay});
+			extend(options, {speed      : args.speed});
+
+			extend(options, {iterations : args.iterations});
+
+			matrix.runAnimation(args.animation, options, callback);
+
+		}
+		else if (args.text) {
+			var options = {};
+
+			extend(options, {duration   : args.duration});
+			extend(options, {delay      : args.delay});
+			extend(options, {speed      : args.speed});
+
+			extend(options, {textColor  : args.textColor});
+			extend(options, {fontName   : args.fontName});
+			extend(options, {fontSize   : args.fontSize});
+			extend(options, {iterations : args.iterations});
+
+			matrix.runText(args.text, options, callback);
+
 		}
 		else {
-			enqueue();
+			matrix.runText('Hello World!');
+
 		}
-
-	}
-
-
-	function displayIP() {
-
-		return new Promise(function(resolve, reject) {
-			function getIP(name) {
-
-				try {
-					var os = require('os');
-					var ifaces = os.networkInterfaces();
-
-					var iface = ifaces[name];
-
-					for (var i = 0; i < iface.length; i++)
-						if (iface[i].family == 'IPv4')
-							return iface[i].address;
-
-				}
-				catch(error) {
-					return undefined;
-
-				}
-			}
-
-			var ip = getIP('wlan0');
-
-			if (ip == undefined)
-				ip = 'Ready';
-
-			_matrix.runText(ip, {}, resolve);
-		});
-
-	}
-
-	function runDry() {
-		var io = require('socket.io-client');
-		var socket = io(sprintf('http://localhost:%d/pixel-matrix', argv.port));
-
-
-		socket.on('connect', function() {
-			console.log('Connected.');
-
-			socket.emit(random(['text', 'animation', 'rain', 'perlin', 'emoji']));
-
-			socket.on('idle', function() {
-				var count = random(1, 4);
-
-				for (var i = 0; i < count; i++)
-					socket.emit(random(['text', 'animation', 'rain', 'perlin', 'emoji']));
-			});
-
-		});
-
-		socket.on('disconnect', function() {
-			console.log('Disconnected.');
-		});
-
 
 	};
-
-	function run() {
-
-		logs.prefix();
-
-		if (argv.log) {
-			var parts = Path.parse(__filename);
-			var logFile = Path.join(parts.dir, parts.name + '.log');
-
-			logs.redirect(logFile);
-		}
-
-		_matrix = new Matrix(argv.dryRun ? {hardware:'none'} : {width:argv.width, height:argv.height});
-		_server = require('http').createServer(function(){});
-		_io     = require('socket.io')(_server).of('/pixel-matrix');
-
-
-		displayIP().then(function() {
-
-			console.log('Started', new Date());
-
-			_server.listen(argv.port, function() {
-				console.log('Listening on port', argv.port, '...');
-			});
-
-			_io.on('connection', function(socket) {
-
-				console.log('Connection from', socket.id);
-
-				socket.on('disconnect', function() {
-					console.log('Disconnected from', socket.id);
-				});
-
-				socket.on('cancel', function() {
-					_queue.clear();
-					_matrix.stop();
-				});
-
-				socket.on('stop', function() {
-					_queue.clear();
-					_matrix.stop();
-				});
-
-				socket.on('text', function(options) {
-					enqueue(runText.bind(_this, options), options);
-				});
-
-				socket.on('animation', function(options) {
-					enqueue(runAnimation.bind(_this, options), options);
-				});
-
-				socket.on('emoji', function(options) {
-					enqueue(runEmoji.bind(_this, options), options);
-				});
-
-				socket.on('rain', function(options) {
-					enqueue(runRain.bind(_this, options), options);
-				});
-
-				socket.on('perlin', function(options) {
-					enqueue(runPerlin.bind(_this, options), options);
-				});
-
-				socket.on('hello', function(data) {
-					console.log('hello');
-				})
-
-			});
-
-			if (argv.dryRun)
-				runDry();
-
-
-
-		});
-
-
-	}
-
-	run();
-
 };
 
-new App();
+
+var app = new App();
+app.run();
