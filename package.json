@@ -1,6 +1,6 @@
 {
   "name": "pixel-matrix-example",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "",
   "main": "app.js",
   "scripts": {
@@ -9,8 +9,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "commander": "^2.9.0",
     "pixel-matrix": "^1.0.3",
-    "minimist": "^1.2.0",
+    "socket.io": "^1.5.1",
+    "socket.io-client": "^1.5.1",
+    "yargs": "^6.4.0",
     "yow": "^1.0.4"
   }
 }
