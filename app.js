@@ -9,7 +9,7 @@ var isObject = require('yow/is').isObject;
 var isString = require('yow/is').isString;
 var logs     = require('yow/logs');
 var Queue    = require('yow/queue');
-var Matrix   = require('hzeller-matrix');
+var Matrix   = require('pixel-matrix');
 
 
 
@@ -210,7 +210,7 @@ var App = function(argv) {
 
 	function runDry() {
 		var io = require('socket.io-client');
-		var socket = io(sprintf('http://localhost:%d/hzeller-matrix', argv.port));
+		var socket = io(sprintf('http://localhost:%d/pixel-matrix', argv.port));
 
 
 		socket.on('connect', function() {
@@ -247,7 +247,7 @@ var App = function(argv) {
 
 		_matrix = new Matrix(argv.dryRun ? {hardware:'none'} : {width:argv.width, height:argv.height});
 		_server = require('http').createServer(function(){});
-		_io     = require('socket.io')(_server).of('/hzeller-matrix');
+		_io     = require('socket.io')(_server).of('/pixel-matrix');
 
 
 		displayIP().then(function() {
