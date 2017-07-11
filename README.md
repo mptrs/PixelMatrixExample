@@ -14,7 +14,7 @@ It's far from finished, but the foundation is done. Read on if you'd like to giv
 For help message me here on github, create and issue or tweet me [@wishjuh](https://twitter.com/wishjuh)
 
 ## Hardware
-At the core there is a Raspberry Pi Zero W cause it's so tiny! On top of it there is an [Adafruit RGB Matrix HAT](https://www.adafruit.com/product/2345). You could wire it all yourself, but this HAT makes it easier and saver.
+At the core there is a Raspberry Pi Zero W cause it's so tiny! On top of it there is an [Adafruit RGB Matrix HAT](https://www.adafruit.com/product/2345). You could wire it all yourself, but this HAT makes it easier and saver. And the npm package used has a MAKE file that is configured for the using the HAT.
 
 Then all you need is the pixel matrix which I got from my friends at [Aliexpress](https://www.aliexpress.com/item/192X192mm-32X16-pixels-1-16-scan-3in1-SMD-RGB-full-color-p6-led-module-for-indoor/32731095336.html) and when you there add some [power](https://www.aliexpress.com/item/1PCS-5V4A-AC-100V-240V-Converter-Adapter-DC-5V-4A-4000mA-Power-Supply-EU-Plug-5/32729613841.html) too. I'm from Europe so I linked a EU plug :)
 
